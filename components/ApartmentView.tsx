@@ -270,7 +270,7 @@ const ApartmentView: React.FC<ApartmentViewProps> = ({ site }) => {
                   <div key={h.id} className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
                     <div className="min-w-0 flex-1 pr-2">
                       <p className="text-[9px] font-bold text-slate-200 truncate">{h.clientName}</p>
-                      <p className="text-[6px] text-slate-600 uppercase font-black mt-0.5">{new Date(h.checkInDate).toLocaleDateString()} > {new Date(h.checkOutDate).toLocaleDateString()}</p>
+                      <p className="text-[6px] text-slate-600 uppercase font-black mt-0.5">{new Date(h.checkInDate).toLocaleDateString()} &gt; {new Date(h.checkOutDate).toLocaleDateString()}</p>
                     </div>
                     <span className="text-[6px] bg-rose-950/40 text-rose-500 px-1.5 py-0.5 rounded uppercase font-black">{h.accommodationType.split(' ')[0]}</span>
                   </div>
@@ -285,3 +285,4 @@ const ApartmentView: React.FC<ApartmentViewProps> = ({ site }) => {
 };
 
 export default ApartmentView;
+    
