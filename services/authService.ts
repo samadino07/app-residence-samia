@@ -38,8 +38,8 @@ const safeGet = <T>(key: string, fallback: T): T => {
     if (!item || item === "undefined" || item === "null") return fallback;
     return JSON.parse(item);
   } catch (e) {
-    console.warn(`Données corrompues pour ${key}, réinitialisation.`);
-    localStorage.removeItem(key);
+    console.warn(`Données corrompues pour ${key} ou accès impossible, réinitialisation.`);
+    try { localStorage.removeItem(key); } catch(err) {}
     return fallback;
   }
 };
@@ -49,7 +49,7 @@ export const authService = {
     const users = safeGet(USERS_KEY, INITIAL_USERS);
     // Si l'objet est vide ou mal formé, on remet les utilisateurs par défaut
     if (!users || Object.keys(users).length === 0) {
-        localStorage.setItem(USERS_KEY, JSON.stringify(INITIAL_USERS));
+        try { localStorage.setItem(USERS_KEY, JSON.stringify(INITIAL_USERS)); } catch(e) {}
         return INITIAL_USERS;
     }
     return users;
@@ -121,11 +121,13 @@ export const authService = {
     }
     
     const userStr = JSON.stringify(entry.user);
-    if (stayConnected) {
-      localStorage.setItem(SESSION_KEY, userStr);
-    } else {
-      sessionStorage.setItem(SESSION_KEY, userStr);
-    }
+    try {
+        if (stayConnected) {
+          localStorage.setItem(SESSION_KEY, userStr);
+        } else {
+          sessionStorage.setItem(SESSION_KEY, userStr);
+        }
+    } catch(e) {}
 
     authService.logActivity(entry.user, 'Connexion');
     return entry.user;
@@ -138,8 +140,10 @@ export const authService = {
     } catch (e) {
       // Ignorer erreur de logout
     }
-    localStorage.removeItem(SESSION_KEY);
-    sessionStorage.removeItem(SESSION_KEY);
+    try {
+        localStorage.removeItem(SESSION_KEY);
+        sessionStorage.removeItem(SESSION_KEY);
+    } catch(e) {}
   },
 
   getCurrentUser: (): User | null => {
@@ -152,8 +156,10 @@ export const authService = {
       
       return null;
     } catch (e) {
-      localStorage.removeItem(SESSION_KEY);
-      sessionStorage.removeItem(SESSION_KEY);
+      try {
+          localStorage.removeItem(SESSION_KEY);
+          sessionStorage.removeItem(SESSION_KEY);
+      } catch(err) {}
       return null;
     }
   }

@@ -1,31 +1,32 @@
+
 import React, { useState, useEffect, useMemo, Component, ReactNode } from 'react';
-import { ViewType, User, HotelSite, AppNotification, InternalMessage, UserRole } from './types.ts';
-import DashboardView from './components/DashboardView.tsx';
-import StockView from './components/StockView.tsx';
-import MealsView from './components/MealsView.tsx';
-import MealVouchersView from './components/MealVouchersView.tsx';
-import StaffView from './components/StaffView.tsx';
-import ApartmentView from './components/ApartmentView.tsx';
-import LaundryView from './components/LaundryView.tsx';
-import CashView from './components/CashView.tsx';
-import ReportView from './components/ReportView.tsx';
-import SettingsView from './components/SettingsView.tsx';
-import AuthView from './components/AuthView.tsx';
-import LoadingView from './components/LoadingView.tsx';
-import { authService } from './services/authService.ts';
+import { ViewType, User, HotelSite, AppNotification, InternalMessage, UserRole } from './types';
+import DashboardView from './components/DashboardView';
+import StockView from './components/StockView';
+import MealsView from './components/MealsView';
+import MealVouchersView from './components/MealVouchersView';
+import StaffView from './components/StaffView';
+import ApartmentView from './components/ApartmentView';
+import LaundryView from './components/LaundryView';
+import CashView from './components/CashView';
+import ReportView from './components/ReportView';
+import SettingsView from './components/SettingsView';
+import AuthView from './components/AuthView';
+import LoadingView from './components/LoadingView';
+import { authService } from './services/authService';
 
 const LOGO_URL = "https://i.ibb.co/XZZBLSSW/Chat-GPT-Image-Dec-31-2025-02-10-28-AM.png";
 
 // -- ERROR BOUNDARY --
 interface ErrorBoundaryProps {
-  children: ReactNode;
+  children?: ReactNode;
 }
 
 interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
@@ -73,13 +74,15 @@ const App: React.FC = () => {
   useEffect(() => {
     const initApp = async () => {
       try {
+        // Petit délai artificiel pour assurer que le DOM est prêt
+        await new Promise(r => setTimeout(r, 100));
+        
         const user = authService.getCurrentUser();
         if (user) {
           setCurrentUser(user);
           setActiveSite(user.role === 'Boss' ? 'Fnideq' : user.site);
         }
         
-        // Chargement sécurisé des messages
         try {
             const savedMsgs = localStorage.getItem('samia_internal_messages');
             if (savedMsgs && savedMsgs !== "undefined") {
@@ -95,10 +98,9 @@ const App: React.FC = () => {
 
       } catch (err) {
         console.error("Critical Init Error", err);
-        // En cas d'erreur critique, on déconnecte pour réinitialiser l'état
         authService.logout();
       } finally {
-        setTimeout(() => setIsLoading(false), 3000);
+        setTimeout(() => setIsLoading(false), 2500);
       }
     };
 
