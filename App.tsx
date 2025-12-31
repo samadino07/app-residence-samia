@@ -42,15 +42,38 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const user = authService.getCurrentUser();
-    if (user) {
-      setCurrentUser(user);
-      setActiveSite(user.role === 'Boss' ? 'Fnideq' : user.site);
-    }
-    const loadingTimer = setTimeout(() => setIsLoading(false), 3000);
-    const savedMsgs = localStorage.getItem('samia_internal_messages');
-    if (savedMsgs) setInternalMessages(JSON.parse(savedMsgs));
-    return () => clearTimeout(loadingTimer);
+    const initApp = async () => {
+      try {
+        const user = authService.getCurrentUser();
+        if (user) {
+          setCurrentUser(user);
+          setActiveSite(user.role === 'Boss' ? 'Fnideq' : user.site);
+        }
+        
+        // Chargement sécurisé des messages
+        try {
+            const savedMsgs = localStorage.getItem('samia_internal_messages');
+            if (savedMsgs && savedMsgs !== "undefined") {
+                setInternalMessages(JSON.parse(savedMsgs));
+            } else {
+                setInternalMessages([]);
+            }
+        } catch (e) {
+            console.warn("Resetting internal messages due to error");
+            localStorage.removeItem('samia_internal_messages');
+            setInternalMessages([]);
+        }
+
+      } catch (err) {
+        console.error("Critical Init Error", err);
+        // En cas d'erreur critique, on déconnecte pour réinitialiser l'état
+        authService.logout();
+      } finally {
+        setTimeout(() => setIsLoading(false), 3000);
+      }
+    };
+
+    initApp();
   }, []);
 
   const handleLogout = () => {

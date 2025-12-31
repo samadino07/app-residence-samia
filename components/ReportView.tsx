@@ -6,6 +6,17 @@ interface ReportViewProps {
   site: HotelSite;
 }
 
+// Helper pour parsing sécurisé
+const safeParse = (key: string, fallback: any) => {
+  try {
+    const item = localStorage.getItem(key);
+    if (!item || item === "undefined" || item === "null") return fallback;
+    return JSON.parse(item);
+  } catch (e) {
+    return fallback;
+  }
+};
+
 const ReportView: React.FC<ReportViewProps> = ({ site }) => {
   const [data, setData] = useState({
     staff: [] as StaffMember[],
@@ -16,29 +27,33 @@ const ReportView: React.FC<ReportViewProps> = ({ site }) => {
   });
 
   useEffect(() => {
-    const staff = JSON.parse(localStorage.getItem(`samia_staff_${site}`) || '[]');
-    const apartments = JSON.parse(localStorage.getItem(`samia_apartments_${site}`) || '[]');
-    const stock = JSON.parse(localStorage.getItem(`samia_stock_items_${site}`) || '[]');
-    const vouchers = JSON.parse(localStorage.getItem(`samia_vouchers_${site}`) || '[]');
-    const cash = JSON.parse(localStorage.getItem(`samia_cash_${site}`) || '[]').map((t: any) => ({
-      ...t, timestamp: new Date(t.timestamp)
-    }));
+    const staff = safeParse(`samia_staff_${site}`, []);
+    const apartments = safeParse(`samia_apartments_${site}`, []);
+    const stock = safeParse(`samia_stock_items_${site}`, []);
+    const vouchers = safeParse(`samia_vouchers_${site}`, []);
+    const rawCash = safeParse(`samia_cash_${site}`, []);
+    
+    // Correction spécifique pour les dates des transactions cash
+    const cash = Array.isArray(rawCash) ? rawCash.map((t: any) => ({
+      ...t, timestamp: t.timestamp ? new Date(t.timestamp) : new Date()
+    })) : [];
 
     setData({ staff, apartments, stock, vouchers, cash });
   }, [site]);
 
   const calculateStaffCost = () => {
+    if (!Array.isArray(data.staff)) return 0;
     return data.staff.reduce((acc, s) => {
-      const daily = s.monthlyBaseSalary / 30;
-      const absences = s.attendance.filter(a => a.status === 'Absent').length;
+      const daily = (Number(s.monthlyBaseSalary) || 0) / 30;
+      const absences = Array.isArray(s.attendance) ? s.attendance.filter(a => a.status === 'Absent').length : 0;
       return acc + (daily * (30 - absences));
     }, 0);
   };
 
-  const cashBalance = data.cash.reduce((acc, t) => t.type === 'Entrée' ? acc + t.amount : acc - t.amount, 0);
-  const stockValue = data.stock.reduce((acc, item) => acc + (item.quantity * item.unitPrice), 0);
-  const occupiedCount = data.apartments.filter(a => a.status === 'Occupé').length;
-  const occupancyRate = data.apartments.length > 0 ? (occupiedCount / data.apartments.length) * 100 : 0;
+  const cashBalance = Array.isArray(data.cash) ? data.cash.reduce((acc, t) => t.type === 'Entrée' ? acc + t.amount : acc - t.amount, 0) : 0;
+  const stockValue = Array.isArray(data.stock) ? data.stock.reduce((acc, item) => acc + (item.quantity * item.unitPrice), 0) : 0;
+  const occupiedCount = Array.isArray(data.apartments) ? data.apartments.filter(a => a.status === 'Occupé').length : 0;
+  const occupancyRate = Array.isArray(data.apartments) && data.apartments.length > 0 ? (occupiedCount / data.apartments.length) * 100 : 0;
 
   const handleExport = (type: 'pdf' | 'excel') => {
     if (type === 'pdf') {
@@ -94,8 +109,8 @@ const ReportView: React.FC<ReportViewProps> = ({ site }) => {
         <h3 className="text-[9px] font-black text-white uppercase tracking-widest italic">Analyse Restauration</h3>
         <div className="space-y-3">
           {['Petit-Déjeuner', 'Déjeuner', 'Goûter', 'Dîner'].map(cat => {
-            const count = data.vouchers.filter(v => v.mealType === cat).length;
-            const max = Math.max(...['Petit-Déjeuner', 'Déjeuner', 'Goûter', 'Dîner'].map(c => data.vouchers.filter(v => v.mealType === c).length), 1);
+            const count = Array.isArray(data.vouchers) ? data.vouchers.filter(v => v.mealType === cat).length : 0;
+            const max = Math.max(...['Petit-Déjeuner', 'Déjeuner', 'Goûter', 'Dîner'].map(c => Array.isArray(data.vouchers) ? data.vouchers.filter(v => v.mealType === c).length : 0), 1);
             const width = (count / max) * 100;
             return (
               <div key={cat} className="space-y-1">
@@ -126,9 +141,9 @@ const ReportView: React.FC<ReportViewProps> = ({ site }) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {data.staff.map(member => {
-                const absCount = member.attendance.filter(a => a.status === 'Absent').length;
-                const net = (member.monthlyBaseSalary / 30) * (30 - absCount);
+              {Array.isArray(data.staff) && data.staff.map(member => {
+                const absCount = Array.isArray(member.attendance) ? member.attendance.filter(a => a.status === 'Absent').length : 0;
+                const net = ((Number(member.monthlyBaseSalary) || 0) / 30) * (30 - absCount);
                 return (
                   <tr key={member.id}>
                     <td className="px-4 py-2">

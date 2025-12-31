@@ -31,51 +31,81 @@ const INITIAL_USERS: Record<string, { user: User, pass: string }> = {
   'R3': { user: { email: 'R3', name: 'Réception Hoceima', role: 'Réceptionniste', site: 'Al Hoceima' }, pass: '1' }
 };
 
+// Fonction utilitaire pour lire le stockage sans crasher
+const safeGet = <T>(key: string, fallback: T): T => {
+  try {
+    const item = localStorage.getItem(key);
+    if (!item || item === "undefined" || item === "null") return fallback;
+    return JSON.parse(item);
+  } catch (e) {
+    console.warn(`Données corrompues pour ${key}, réinitialisation.`);
+    localStorage.removeItem(key);
+    return fallback;
+  }
+};
+
 export const authService = {
   getUsers: (): Record<string, { user: User, pass: string }> => {
-    const saved = localStorage.getItem(USERS_KEY);
-    if (!saved) {
-      localStorage.setItem(USERS_KEY, JSON.stringify(INITIAL_USERS));
-      return INITIAL_USERS;
+    const users = safeGet(USERS_KEY, INITIAL_USERS);
+    // Si l'objet est vide ou mal formé, on remet les utilisateurs par défaut
+    if (!users || Object.keys(users).length === 0) {
+        localStorage.setItem(USERS_KEY, JSON.stringify(INITIAL_USERS));
+        return INITIAL_USERS;
     }
-    return JSON.parse(saved);
+    return users;
   },
 
   addUser: (userData: User, pass: string) => {
-    const users = authService.getUsers();
-    users[userData.email] = { user: userData, pass };
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    try {
+      const users = authService.getUsers();
+      users[userData.email] = { user: userData, pass };
+      localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    } catch (e) {
+      console.error("Erreur ajout utilisateur", e);
+    }
   },
 
   deleteUser: (email: string) => {
-    const users = authService.getUsers();
-    delete users[email];
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    try {
+      const users = authService.getUsers();
+      delete users[email];
+      localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    } catch (e) {
+      console.error("Erreur suppression utilisateur", e);
+    }
   },
 
   updatePassword: (email: string, newPass: string) => {
-    const users = authService.getUsers();
-    if (users[email]) {
-      users[email].pass = newPass;
-      localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    try {
+      const users = authService.getUsers();
+      if (users[email]) {
+        users[email].pass = newPass;
+        localStorage.setItem(USERS_KEY, JSON.stringify(users));
+      }
+    } catch (e) {
+      console.error("Erreur maj mot de passe", e);
     }
   },
 
   logActivity: (user: User, action: 'Connexion' | 'Déconnexion') => {
-    const logs: ActivityLog[] = JSON.parse(localStorage.getItem(LOGS_KEY) || '[]');
-    const newLog: ActivityLog = {
-      id: Date.now().toString(),
-      userName: user.name,
-      userRole: user.role,
-      action,
-      timestamp: new Date().toISOString(),
-      site: user.site
-    };
-    localStorage.setItem(LOGS_KEY, JSON.stringify([newLog, ...logs].slice(0, 500)));
+    try {
+      const logs: ActivityLog[] = safeGet(LOGS_KEY, []);
+      const newLog: ActivityLog = {
+        id: Date.now().toString(),
+        userName: user.name,
+        userRole: user.role,
+        action,
+        timestamp: new Date().toISOString(),
+        site: user.site
+      };
+      localStorage.setItem(LOGS_KEY, JSON.stringify([newLog, ...logs].slice(0, 500)));
+    } catch (e) {
+      console.error("Erreur log activity", e);
+    }
   },
 
   getLogs: (): ActivityLog[] => {
-    return JSON.parse(localStorage.getItem(LOGS_KEY) || '[]');
+    return safeGet(LOGS_KEY, []);
   },
 
   login: (email: string, pass: string, role: UserRole, stayConnected: boolean): User => {
@@ -102,14 +132,29 @@ export const authService = {
   },
 
   logout: () => {
-    const user = authService.getCurrentUser();
-    if (user) authService.logActivity(user, 'Déconnexion');
+    try {
+      const user = authService.getCurrentUser();
+      if (user) authService.logActivity(user, 'Déconnexion');
+    } catch (e) {
+      // Ignorer erreur de logout
+    }
     localStorage.removeItem(SESSION_KEY);
     sessionStorage.removeItem(SESSION_KEY);
   },
 
   getCurrentUser: (): User | null => {
-    const session = localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY);
-    return session ? JSON.parse(session) : null;
+    try {
+      const sessionLocal = localStorage.getItem(SESSION_KEY);
+      const sessionSession = sessionStorage.getItem(SESSION_KEY);
+      
+      if (sessionLocal && sessionLocal !== "undefined") return JSON.parse(sessionLocal);
+      if (sessionSession && sessionSession !== "undefined") return JSON.parse(sessionSession);
+      
+      return null;
+    } catch (e) {
+      localStorage.removeItem(SESSION_KEY);
+      sessionStorage.removeItem(SESSION_KEY);
+      return null;
+    }
   }
 };
