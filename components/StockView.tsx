@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { HotelSite, StockItem, UserRole, StockCategory, ChefCommand } from '../types';
+import { useTheme } from '../ThemeContext';
 
 interface StockViewProps {
   site: HotelSite;
@@ -11,6 +12,7 @@ const CATEGORIES: StockCategory[] = ['Produits Laitiers', 'Boucherie', 'Épiceri
 const UNITS = ['Kg', 'L', 'Unité', 'Pack'];
 
 const StockView: React.FC<StockViewProps> = ({ site, role }) => {
+  const { themeClasses, isDark } = useTheme();
   const ITEMS_STORAGE_KEY = `samia_stock_items_${site}`;
   const COMMANDS_STORAGE_KEY = `samia_stock_commands_${site}`;
 
@@ -72,7 +74,7 @@ const StockView: React.FC<StockViewProps> = ({ site, role }) => {
     <div className="h-full overflow-y-auto p-4 space-y-4 bg-transparent pb-24">
       <div className="flex items-center justify-between">
         <div className="flex flex-col">
-          <h2 className="text-lg font-black text-white italic uppercase tracking-tight leading-none">Stocks Control</h2>
+          <h2 className={`text-lg font-black ${themeClasses.textPrimary} italic uppercase tracking-tight leading-none`}>Stocks Control</h2>
           <span className="text-[7px] text-rose-700 font-black uppercase tracking-[0.2em] mt-1">{site}</span>
         </div>
         {isBoss && (
@@ -84,17 +86,17 @@ const StockView: React.FC<StockViewProps> = ({ site, role }) => {
 
       <div className="space-y-4">
         {/* Table/List View */}
-        <div className="bg-[#120303]/60 backdrop-blur-md rounded-2xl border border-white/5 overflow-hidden">
-          <div className="px-4 py-2 border-b border-white/5 flex justify-between bg-white/5">
-            <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest italic">Catalogue</span>
-            <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">{items.length} Réf</span>
+        <div className={`${themeClasses.bgCard} rounded-2xl border ${themeClasses.borderColor} overflow-hidden`}>
+          <div className={`px-4 py-2 border-b ${themeClasses.borderColor} flex justify-between ${themeClasses.bgInput}`}>
+            <span className={`text-[8px] font-black ${themeClasses.textMuted} uppercase tracking-widest italic`}>Catalogue</span>
+            <span className={`text-[8px] font-black ${themeClasses.textSecondary} uppercase tracking-widest`}>{items.length} Réf</span>
           </div>
           
-          <div className="divide-y divide-white/5">
+          <div className={`divide-y ${themeClasses.borderColor}`}>
             {items.map(item => (
               <div key={item.id} className="p-3 flex items-center justify-between">
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-bold text-white truncate leading-none">{item.name}</p>
+                  <p className={`text-[11px] font-bold ${themeClasses.textPrimary} truncate leading-none`}>{item.name}</p>
                   <p className="text-[7px] text-rose-500 font-black uppercase mt-1 opacity-70">{item.category}</p>
                 </div>
                 
@@ -107,7 +109,7 @@ const StockView: React.FC<StockViewProps> = ({ site, role }) => {
                   
                   <div className="flex space-x-1">
                     {(isMagasinier || isBoss || isGerant) && (
-                      <div className="flex bg-[#0a0202] rounded-lg border border-white/5 p-0.5">
+                      <div className={`${isDark ? 'bg-[#0a0202]' : 'bg-slate-100'} rounded-lg border ${themeClasses.borderColor} p-0.5`}>
                         <button onClick={() => adjustStock(item.id, -1)} className="w-5 h-5 flex items-center justify-center text-rose-500 text-[8px]"><i className="fas fa-minus"></i></button>
                         <button onClick={() => adjustStock(item.id, 1)} className="w-5 h-5 flex items-center justify-center text-emerald-500 text-[8px]"><i className="fas fa-plus"></i></button>
                       </div>
@@ -123,14 +125,14 @@ const StockView: React.FC<StockViewProps> = ({ site, role }) => {
         </div>
 
         {/* Commands List */}
-        <div className="bg-[#120303]/60 backdrop-blur-md rounded-2xl border border-white/5 p-4 space-y-3">
-          <h3 className="text-[9px] font-black text-white uppercase tracking-widest italic">Bons de Commande</h3>
+        <div className={`${themeClasses.bgCard} rounded-2xl border ${themeClasses.borderColor} p-4 space-y-3`}>
+          <h3 className={`text-[9px] font-black ${themeClasses.textPrimary} uppercase tracking-widest italic`}>Bons de Commande</h3>
           <div className="space-y-2">
             {commands.map(cmd => (
-              <div key={cmd.id} className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5">
+              <div key={cmd.id} className={`flex items-center justify-between p-2 rounded-xl ${themeClasses.bgInput} border ${themeClasses.borderColor}`}>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-bold text-white truncate leading-none">{cmd.productName}</p>
-                  <p className="text-[7px] text-slate-500 font-black uppercase mt-1">{cmd.quantity} {cmd.unit}</p>
+                  <p className={`text-[10px] font-bold ${themeClasses.textPrimary} truncate leading-none`}>{cmd.productName}</p>
+                  <p className={`text-[7px] ${themeClasses.textMuted} font-black uppercase mt-1`}>{cmd.quantity} {cmd.unit}</p>
                 </div>
                 <div className="flex flex-col items-end">
                    <span className={`text-[6px] px-1.5 py-0.5 rounded uppercase font-black ${cmd.status === 'Livré' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-amber-500/20 text-amber-500'}`}>{cmd.status}</span>
@@ -146,18 +148,18 @@ const StockView: React.FC<StockViewProps> = ({ site, role }) => {
 
       {isAddingProduct && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-[#1a0505] w-full max-w-[280px] rounded-3xl p-6 border border-white/10 shadow-2xl space-y-4">
-             <h3 className="text-white font-black uppercase text-xs italic tracking-widest">Nouvel Article</h3>
+          <div className={`${isDark ? 'bg-[#1a0505]' : 'bg-white'} w-full max-w-[280px] rounded-3xl p-6 border ${themeClasses.borderColor} shadow-2xl space-y-4`}>
+             <h3 className={`${themeClasses.textPrimary} font-black uppercase text-xs italic tracking-widest`}>Nouvel Article</h3>
              <form onSubmit={handleAddProduct} className="space-y-3">
-                <input required type="text" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-[10px]" placeholder="Désignation" />
+                <input required type="text" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className={`w-full ${themeClasses.bgInput} border ${themeClasses.borderColor} rounded-xl px-4 py-2.5 ${themeClasses.textPrimary} text-[10px]`} placeholder="Désignation" />
                 <div className="grid grid-cols-2 gap-2">
-                  <select value={newProduct.unit} onChange={e => setNewProduct({...newProduct, unit: e.target.value as any})} className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-[10px] outline-none appearance-none">
-                    {UNITS.map(u => <option key={u} value={u} className="bg-[#1a0505]">{u}</option>)}
+                  <select value={newProduct.unit} onChange={e => setNewProduct({...newProduct, unit: e.target.value as any})} className={`${themeClasses.bgInput} border ${themeClasses.borderColor} rounded-xl px-3 py-2 ${themeClasses.textPrimary} text-[10px] outline-none appearance-none`}>
+                    {UNITS.map(u => <option key={u} value={u} className={isDark ? "bg-[#1a0505]" : "bg-white"}>{u}</option>)}
                   </select>
-                  <input type="number" step="0.01" value={newProduct.unitPrice} onChange={e => setNewProduct({...newProduct, unitPrice: parseFloat(e.target.value)})} className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-[10px]" placeholder="Prix DH" />
+                  <input type="number" step="0.01" value={newProduct.unitPrice} onChange={e => setNewProduct({...newProduct, unitPrice: parseFloat(e.target.value)})} className={`${themeClasses.bgInput} border ${themeClasses.borderColor} rounded-xl px-3 py-2 ${themeClasses.textPrimary} text-[10px]`} placeholder="Prix DH" />
                 </div>
                 <button type="submit" className="w-full py-2.5 bg-rose-900 text-white rounded-xl text-[8px] font-black uppercase">Enregistrer</button>
-                <button type="button" onClick={() => setIsAddingProduct(false)} className="w-full py-2.5 text-slate-600 text-[8px] font-black uppercase">Fermer</button>
+                <button type="button" onClick={() => setIsAddingProduct(false)} className={`w-full py-2.5 ${themeClasses.textMuted} text-[8px] font-black uppercase`}>Fermer</button>
              </form>
           </div>
         </div>
@@ -165,14 +167,14 @@ const StockView: React.FC<StockViewProps> = ({ site, role }) => {
 
       {isOrdering && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-[#1a0505] w-full max-w-[280px] rounded-3xl p-6 border border-white/10 shadow-2xl space-y-4">
+          <div className={`${isDark ? 'bg-[#1a0505]' : 'bg-white'} w-full max-w-[280px] rounded-3xl p-6 border ${themeClasses.borderColor} shadow-2xl space-y-4`}>
              <div className="text-center">
-                <h3 className="text-white font-black uppercase text-xs">{isOrdering.name}</h3>
+                <h3 className={`${themeClasses.textPrimary} font-black uppercase text-xs`}>{isOrdering.name}</h3>
                 <p className="text-[7px] text-rose-500 font-bold uppercase mt-1">Saisie Commande</p>
              </div>
-             <input autoFocus type="number" value={orderQty} onChange={(e) => setOrderQty(parseFloat(e.target.value))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center text-2xl font-black text-white outline-none" placeholder="0.00" />
+             <input autoFocus type="number" value={orderQty} onChange={(e) => setOrderQty(parseFloat(e.target.value))} className={`w-full ${themeClasses.bgInput} border ${themeClasses.borderColor} rounded-xl px-4 py-3 text-center text-2xl font-black ${themeClasses.textPrimary} outline-none`} placeholder="0.00" />
              <div className="flex gap-2">
-                <button onClick={() => setIsOrdering(null)} className="flex-1 py-2.5 text-slate-600 text-[8px] font-black uppercase">Annuler</button>
+                <button onClick={() => setIsOrdering(null)} className={`flex-1 py-2.5 ${themeClasses.textMuted} text-[8px] font-black uppercase`}>Annuler</button>
                 <button onClick={createCommand} className="flex-[2] py-2.5 bg-rose-900 text-white rounded-xl text-[8px] font-black uppercase">Commander</button>
              </div>
           </div>
