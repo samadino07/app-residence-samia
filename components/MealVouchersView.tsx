@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { HotelSite, MealCategory, MealVoucher, Apartment } from '../types.ts';
-import { authService } from '../services/authService.ts';
+import { HotelSite, MealCategory, MealVoucher, Apartment } from '../types';
+import { authService } from '../services/authService';
 
 interface MealVouchersViewProps { site: HotelSite; }
 

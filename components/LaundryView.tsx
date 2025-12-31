@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { HotelSite, LaundryRequest, Apartment, LaundryStatus } from '../types.ts';
-import { authService } from '../services/authService.ts';
+import { HotelSite, LaundryRequest, Apartment, LaundryStatus } from '../types';
+import { authService } from '../services/authService';
 
 interface LaundryViewProps { site: HotelSite; }
 

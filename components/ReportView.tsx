@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { HotelSite, StaffMember, Apartment, StockItem, MealVoucher, CashTransaction } from '../types.ts';
+import { HotelSite, StaffMember, Apartment, StockItem, MealVoucher, CashTransaction } from '../types';
 
 interface ReportViewProps {
   site: HotelSite;

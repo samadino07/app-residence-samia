@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
-import { authService } from '../services/authService.ts';
-import { User, UserRole } from '../types.ts';
+import { authService } from '../services/authService';
+import { User, UserRole } from '../types';
 
 const LOGO_URL = "https://i.ibb.co/XZZBLSSW/Chat-GPT-Image-Dec-31-2025-02-10-28-AM.png";
 

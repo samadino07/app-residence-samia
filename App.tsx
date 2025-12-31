@@ -25,15 +25,15 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = { hasError: false };
-  }
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  state: ErrorBoundaryState = { hasError: false };
+
   static getDerivedStateFromError(_: Error) { return { hasError: true }; }
+  
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("App Crash:", error, errorInfo);
   }
+  
   render() {
     if (this.state.hasError) return (
       <div className="flex h-screen w-full items-center justify-center bg-black text-white p-10 flex-col text-center">

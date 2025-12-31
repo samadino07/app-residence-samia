@@ -11,7 +11,7 @@ import {
   Dish,
   CashTransaction,
   Apartment
-} from '../types.ts';
+} from '../types';
 
 interface DashboardViewProps {
   site: HotelSite;

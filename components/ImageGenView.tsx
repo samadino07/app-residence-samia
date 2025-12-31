@@ -1,8 +1,7 @@
 
 import React, { useState } from 'react';
 import { generateImage } from '../services/geminiService';
-/* Update import to use .ts extension consistent with other components */
-import { GeneratedImage } from '../types.ts';
+import { GeneratedImage } from '../types';
 
 const ImageGenView: React.FC = () => {
   const [prompt, setPrompt] = useState('');

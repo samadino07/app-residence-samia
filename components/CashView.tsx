@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { HotelSite, CashTransaction } from '../types.ts';
-import { authService } from '../services/authService.ts';
+import { HotelSite, CashTransaction } from '../types';
+import { authService } from '../services/authService';
 
 interface CashViewProps { site: HotelSite; }
 

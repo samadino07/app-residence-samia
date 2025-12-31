@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { HotelSite, Apartment, ApartmentHistory } from '../types.ts';
-import { authService } from '../services/authService.ts';
+import { HotelSite, Apartment, ApartmentHistory } from '../types';
+import { authService } from '../services/authService';
 
 interface ApartmentViewProps {
   site: HotelSite;

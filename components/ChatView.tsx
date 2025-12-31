@@ -1,7 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-/* Update import to use .ts extension consistent with other components */
-import { Message, HotelSite } from '../types.ts';
+import { Message, HotelSite } from '../types';
 import { createChatSession } from '../services/geminiService';
 
 interface ChatViewProps {

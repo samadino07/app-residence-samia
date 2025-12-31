@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { User, UserRole, HotelSite, ActivityLog } from '../types.ts';
-import { authService } from '../services/authService.ts';
+import { User, UserRole, HotelSite, ActivityLog } from '../types';
+import { authService } from '../services/authService';
 
 const ROLES: UserRole[] = ['Gérant', 'Chef de Cuisine', 'Magasinier', 'Caissier', 'Réceptionniste'];
 const SITES: HotelSite[] = ['Fnideq', 'M\'diq', 'Al Hoceima'];

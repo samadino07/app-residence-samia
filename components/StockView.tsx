@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { HotelSite, StockItem, UserRole, StockCategory, ChefCommand } from '../types.ts';
+import { HotelSite, StockItem, UserRole, StockCategory, ChefCommand } from '../types';
 
 interface StockViewProps {
   site: HotelSite;
