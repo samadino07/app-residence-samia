@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   HotelSite, 
@@ -19,7 +20,6 @@ interface DashboardViewProps {
 
 // -- UTILS DE SÉCURITÉ --
 
-// 1. Parser JSON sans crasher
 const safeJSONParse = (key: string, fallback: any) => {
   try {
     const item = localStorage.getItem(key);
@@ -31,18 +31,16 @@ const safeJSONParse = (key: string, fallback: any) => {
   }
 };
 
-// 2. Nettoyer les tableaux (enlever les nulls/undefined)
-function cleanArray<T>(arr: any[]): T[] {
+// Fonction simplifiée sans générique explicite pour éviter les conflits JSX
+function cleanArray(arr: any[]): any[] {
   if (!Array.isArray(arr)) return [];
   return arr.filter(item => item !== null && item !== undefined);
 }
 
-// 3. Comparer les dates sans crasher (Invalid Date Fix)
 const isSameDay = (dateInput: string | Date | undefined, targetDateStr: string): boolean => {
   if (!dateInput) return false;
   try {
     const d = new Date(dateInput);
-    // Vérifier si la date est valide (getTime() renvoie NaN si invalide)
     if (isNaN(d.getTime())) return false; 
     return d.toLocaleDateString('fr-FR') === targetDateStr;
   } catch (e) {
@@ -51,7 +49,6 @@ const isSameDay = (dateInput: string | Date | undefined, targetDateStr: string):
 };
 
 const DashboardView: React.FC<DashboardViewProps> = ({ site, isBoss }) => {
-  // Initialisation avec des tableaux vides pour éviter le crash au premier render
   const [data, setData] = useState({
     stock: [] as StockItem[],
     commands: [] as ChefCommand[],
@@ -66,25 +63,24 @@ const DashboardView: React.FC<DashboardViewProps> = ({ site, isBoss }) => {
 
   useEffect(() => {
     const fetchData = () => {
-      // Chargement sécurisé
       const rawStaff = safeJSONParse(`samia_staff_${site}`, []);
       
-      // Assurer que staff.attendance est toujours un tableau
-      const sanitizedStaff = cleanArray<StaffMember>(rawStaff).map(s => ({
+      const sanitizedStaff = cleanArray(rawStaff).map((s: any) => ({
         ...s,
         attendance: Array.isArray(s.attendance) ? s.attendance : []
       }));
 
+      // Utilisation de 'as Type[]' au lieu de <Type> pour compatibilité totale TSX
       setData({
-        stock: cleanArray<StockItem>(safeJSONParse(`samia_stock_items_${site}`, [])),
-        commands: cleanArray<ChefCommand>(safeJSONParse(`samia_stock_commands_${site}`, [])),
-        laundry: cleanArray<LaundryRequest>(safeJSONParse(`samia_blanchisserie_${site}`, [])),
-        staff: sanitizedStaff,
-        vouchers: cleanArray<MealVoucher>(safeJSONParse(`samia_vouchers_${site}`, [])),
-        planning: cleanArray<DailyPlan>(safeJSONParse(`samia_planning_${site}`, [])),
-        dishes: cleanArray<Dish>(safeJSONParse(`samia_dishes_${site}`, [])),
-        cash: cleanArray<CashTransaction>(safeJSONParse(`samia_cash_${site}`, [])),
-        apartments: cleanArray<Apartment>(safeJSONParse(`samia_apartments_${site}`, []))
+        stock: cleanArray(safeJSONParse(`samia_stock_items_${site}`, [])) as StockItem[],
+        commands: cleanArray(safeJSONParse(`samia_stock_commands_${site}`, [])) as ChefCommand[],
+        laundry: cleanArray(safeJSONParse(`samia_blanchisserie_${site}`, [])) as LaundryRequest[],
+        staff: sanitizedStaff as StaffMember[],
+        vouchers: cleanArray(safeJSONParse(`samia_vouchers_${site}`, [])) as MealVoucher[],
+        planning: cleanArray(safeJSONParse(`samia_planning_${site}`, [])) as DailyPlan[],
+        dishes: cleanArray(safeJSONParse(`samia_dishes_${site}`, [])) as Dish[],
+        cash: cleanArray(safeJSONParse(`samia_cash_${site}`, [])) as CashTransaction[],
+        apartments: cleanArray(safeJSONParse(`samia_apartments_${site}`, [])) as Apartment[]
       });
     };
 
@@ -95,8 +91,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({ site, isBoss }) => {
 
   const today = new Date().toLocaleDateString('fr-FR');
   
-  // -- CALCULS SÉCURISÉS (TRY/CATCH INTEGRES) --
-
   const totalClients = useMemo(() => 
     data.apartments.reduce((acc, apt) => {
       const count = Number(apt?.currentOccupantsCount);
@@ -145,18 +139,13 @@ const DashboardView: React.FC<DashboardViewProps> = ({ site, isBoss }) => {
     } catch (e) { return []; }
   }, [data.planning, data.dishes]);
 
-  // Financial Health avec protection Date
   const healthData = useMemo(() => {
     const clientBudget = totalClients * 150;
-    
     const todayExpenses = data.cash
-      .filter(t => {
-        return t && t.type === 'Sortie' && isSameDay(t.timestamp, today);
-      })
+      .filter(t => t && t.type === 'Sortie' && isSameDay(t.timestamp, today))
       .reduce((acc, t) => acc + (Number(t.amount) || 0), 0);
     
     const score = clientBudget - todayExpenses;
-    
     return {
       budget: clientBudget,
       expenses: todayExpenses,

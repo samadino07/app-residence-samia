@@ -1,7 +1,26 @@
 
 import { GoogleGenAI, Type, GenerateContentResponse, Modality } from "@google/genai";
 
-const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Fonction sécurisée pour récupérer la clé API sans crasher le navigateur
+const getApiKey = () => {
+  try {
+    // Vérification sécurisée de process.env
+    if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+      return process.env.API_KEY;
+    }
+    // Vérification pour Vite (import.meta.env)
+    // @ts-ignore
+    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_KEY) {
+      // @ts-ignore
+      return import.meta.env.VITE_API_KEY;
+    }
+  } catch(e) {
+    // Ignorer silencieusement en cas d'erreur
+  }
+  return '';
+};
+
+const getAI = () => new GoogleGenAI({ apiKey: getApiKey() });
 
 export const createChatSession = () => {
   const ai = getAI();
@@ -29,7 +48,7 @@ export const chatWithGemini = async (message: string, history: any[]) => {
   })) || [];
 
   return {
-    text: response.text || "I'm sorry, I couldn't process that.",
+    text: response.text || "Je ne peux pas traiter cette demande pour le moment.",
     sources
   };
 };
