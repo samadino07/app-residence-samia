@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   HotelSite, 
@@ -18,18 +17,41 @@ interface DashboardViewProps {
   isBoss: boolean;
 }
 
-// Fonction utilitaire pour éviter les crashs JSON
+// -- UTILS DE SÉCURITÉ --
+
+// 1. Parser JSON sans crasher
 const safeJSONParse = (key: string, fallback: any) => {
   try {
     const item = localStorage.getItem(key);
-    return item ? JSON.parse(item) : fallback;
+    if (!item || item === "undefined" || item === "null") return fallback;
+    return JSON.parse(item);
   } catch (e) {
-    console.warn(`Erreur de lecture pour ${key}`, e);
+    console.warn(`Resetting corrupted key: ${key}`);
     return fallback;
   }
 };
 
+// 2. Nettoyer les tableaux (enlever les nulls/undefined)
+function cleanArray<T>(arr: any[]): T[] {
+  if (!Array.isArray(arr)) return [];
+  return arr.filter(item => item !== null && item !== undefined);
+}
+
+// 3. Comparer les dates sans crasher (Invalid Date Fix)
+const isSameDay = (dateInput: string | Date | undefined, targetDateStr: string): boolean => {
+  if (!dateInput) return false;
+  try {
+    const d = new Date(dateInput);
+    // Vérifier si la date est valide (getTime() renvoie NaN si invalide)
+    if (isNaN(d.getTime())) return false; 
+    return d.toLocaleDateString('fr-FR') === targetDateStr;
+  } catch (e) {
+    return false;
+  }
+};
+
 const DashboardView: React.FC<DashboardViewProps> = ({ site, isBoss }) => {
+  // Initialisation avec des tableaux vides pour éviter le crash au premier render
   const [data, setData] = useState({
     stock: [] as StockItem[],
     commands: [] as ChefCommand[],
@@ -44,18 +66,28 @@ const DashboardView: React.FC<DashboardViewProps> = ({ site, isBoss }) => {
 
   useEffect(() => {
     const fetchData = () => {
+      // Chargement sécurisé
+      const rawStaff = safeJSONParse(`samia_staff_${site}`, []);
+      
+      // Assurer que staff.attendance est toujours un tableau
+      const sanitizedStaff = cleanArray<StaffMember>(rawStaff).map(s => ({
+        ...s,
+        attendance: Array.isArray(s.attendance) ? s.attendance : []
+      }));
+
       setData({
-        stock: safeJSONParse(`samia_stock_items_${site}`, []),
-        commands: safeJSONParse(`samia_stock_commands_${site}`, []),
-        laundry: safeJSONParse(`samia_blanchisserie_${site}`, []),
-        staff: safeJSONParse(`samia_staff_${site}`, []),
-        vouchers: safeJSONParse(`samia_vouchers_${site}`, []),
-        planning: safeJSONParse(`samia_planning_${site}`, []),
-        dishes: safeJSONParse(`samia_dishes_${site}`, []),
-        cash: safeJSONParse(`samia_cash_${site}`, []),
-        apartments: safeJSONParse(`samia_apartments_${site}`, [])
+        stock: cleanArray<StockItem>(safeJSONParse(`samia_stock_items_${site}`, [])),
+        commands: cleanArray<ChefCommand>(safeJSONParse(`samia_stock_commands_${site}`, [])),
+        laundry: cleanArray<LaundryRequest>(safeJSONParse(`samia_blanchisserie_${site}`, [])),
+        staff: sanitizedStaff,
+        vouchers: cleanArray<MealVoucher>(safeJSONParse(`samia_vouchers_${site}`, [])),
+        planning: cleanArray<DailyPlan>(safeJSONParse(`samia_planning_${site}`, [])),
+        dishes: cleanArray<Dish>(safeJSONParse(`samia_dishes_${site}`, [])),
+        cash: cleanArray<CashTransaction>(safeJSONParse(`samia_cash_${site}`, [])),
+        apartments: cleanArray<Apartment>(safeJSONParse(`samia_apartments_${site}`, []))
       });
     };
+
     fetchData();
     window.addEventListener('storage', fetchData);
     return () => window.removeEventListener('storage', fetchData);
@@ -63,45 +95,63 @@ const DashboardView: React.FC<DashboardViewProps> = ({ site, isBoss }) => {
 
   const today = new Date().toLocaleDateString('fr-FR');
   
-  // Stats Calculators (avec protection contre undefined)
+  // -- CALCULS SÉCURISÉS (TRY/CATCH INTEGRES) --
+
   const totalClients = useMemo(() => 
-    (data.apartments || []).reduce((acc, apt) => acc + (Number(apt?.currentOccupantsCount) || 0), 0)
+    data.apartments.reduce((acc, apt) => {
+      const count = Number(apt?.currentOccupantsCount);
+      return acc + (isNaN(count) ? 0 : count);
+    }, 0)
   , [data.apartments]);
 
-  const staffPresent = (data.staff || []).filter(s => s?.attendance?.find(a => a.date === today && a.status === 'Présent')).length;
-  const staffAbsent = (data.staff || []).filter(s => s?.attendance?.find(a => a.date === today && a.status === 'Absent')).length;
+  const staffPresent = useMemo(() => 
+    data.staff.filter(s => s.attendance.some(a => isSameDay(a.date, today) && a.status === 'Présent')).length
+  , [data.staff, today]);
+
+  const staffAbsent = useMemo(() => 
+    data.staff.filter(s => s.attendance.some(a => isSameDay(a.date, today) && a.status === 'Absent')).length
+  , [data.staff, today]);
   
-  const dailyVouchers = (data.vouchers || []).filter(v => v.date === today);
-  const mealsCount = dailyVouchers.filter(v => v.type === 'Repas').length;
-  const drinksCount = dailyVouchers.filter(v => v.type === 'Boisson').length;
+  const dailyVouchers = useMemo(() => 
+    data.vouchers.filter(v => isSameDay(v.date, today) || isSameDay(v.timestamp, today))
+  , [data.vouchers, today]);
+  
+  const mealsCount = dailyVouchers.filter(v => v?.type === 'Repas').length;
+  const drinksCount = dailyVouchers.filter(v => v?.type === 'Boisson').length;
 
-  const laundryStats = {
-    pending: (data.laundry || []).filter(r => r.status === 'En attente' || r.status === 'En blanchisserie').length,
-    inReception: (data.laundry || []).filter(r => r.status === 'En réception').length
-  };
+  const laundryStats = useMemo(() => ({
+    pending: data.laundry.filter(r => r && (r.status === 'En attente' || r.status === 'En blanchisserie')).length,
+    inReception: data.laundry.filter(r => r && r.status === 'En réception').length
+  }), [data.laundry]);
 
-  const criticalStock = (data.stock || []).filter(s => s.quantity <= s.minThreshold);
-  const activeCommands = (data.commands || []).filter(c => c.status === 'En attente');
+  const criticalStock = useMemo(() => 
+    data.stock.filter(s => s && (s.quantity <= (s.minThreshold || 0)))
+  , [data.stock]);
+  
+  const activeCommands = useMemo(() => 
+    data.commands.filter(c => c && c.status === 'En attente')
+  , [data.commands]);
 
   const todayMenu = useMemo(() => {
-    const days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
-    const currentDay = days[new Date().getDay()];
-    return (data.planning || [])
-      .filter(p => p.day === currentDay)
-      .map(p => {
-        const dish = (data.dishes || []).find(d => d.id === p.mainDishId);
-        return { cat: p.category, name: dish ? dish.name : 'Non planifié' };
-      });
+    try {
+      const days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+      const currentDay = days[new Date().getDay()];
+      return data.planning
+        .filter(p => p && p.day === currentDay)
+        .map(p => {
+          const dish = data.dishes.find(d => d && d.id === p.mainDishId);
+          return { cat: p.category, name: dish ? dish.name : 'Non planifié' };
+        });
+    } catch (e) { return []; }
   }, [data.planning, data.dishes]);
 
-  // Financial Health: (Clients * 150) - Expenses
+  // Financial Health avec protection Date
   const healthData = useMemo(() => {
     const clientBudget = totalClients * 150;
-    const todayExpenses = (data.cash || [])
+    
+    const todayExpenses = data.cash
       .filter(t => {
-        try {
-          return new Date(t.timestamp).toLocaleDateString('fr-FR') === today && t.type === 'Sortie';
-        } catch { return false; }
+        return t && t.type === 'Sortie' && isSameDay(t.timestamp, today);
       })
       .reduce((acc, t) => acc + (Number(t.amount) || 0), 0);
     
@@ -195,7 +245,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ site, isBoss }) => {
             <i className="fas fa-user-check text-[10px]"></i>
           </div>
           <div className="flex items-end justify-between">
-            <h4 className="text-xl font-black text-white">{staffPresent}<span className="text-[10px] text-slate-600 ml-1">/ {(data.staff || []).length}</span></h4>
+            <h4 className="text-xl font-black text-white">{staffPresent}<span className="text-[10px] text-slate-600 ml-1">/ {data.staff.length}</span></h4>
             <span className="text-[7px] font-black text-emerald-500 uppercase">{staffAbsent} Abs</span>
           </div>
           {renderSparkline('#10b981')}
