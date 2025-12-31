@@ -10,6 +10,8 @@ interface SettingsViewProps {
   onBack?: () => void;
 }
 
+type UserEntry = [string, { user: User, pass: string }];
+
 const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
   const [users, setUsers] = useState<Record<string, { user: User, pass: string }>>({});
   const [logs, setLogs] = useState<ActivityLog[]>([]);
@@ -64,6 +66,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
     }
   };
 
+  const userEntries = Object.entries(users) as UserEntry[];
+
   return (
     <div className="h-full overflow-y-auto p-4 md:p-6 space-y-6 bg-transparent pb-24">
       <div className="flex flex-col space-y-4">
@@ -99,7 +103,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {(Object.entries(users) as [string, { user: User, pass: string }][]).map(([email, data]) => (
+            {userEntries.map(([email, data]) => (
               <div key={email} className="bg-[#120303]/60 backdrop-blur-md p-4 rounded-3xl border border-white/5 space-y-4 group">
                 <div className="flex justify-between items-start">
                   <div className="flex items-center space-x-3">

@@ -31,8 +31,8 @@ const INITIAL_USERS: Record<string, { user: User, pass: string }> = {
   'R3': { user: { email: 'R3', name: 'Réception Hoceima', role: 'Réceptionniste', site: 'Al Hoceima' }, pass: '1' }
 };
 
-// Fonction utilitaire pour lire le stockage sans crasher
-const safeGet = <T>(key: string, fallback: T): T => {
+// Utilisation de 'function' au lieu de const fléchée pour éviter l'erreur de parsing JSX avec les génériques <T>
+function safeGet<T>(key: string, fallback: T): T {
   try {
     const item = localStorage.getItem(key);
     if (!item || item === "undefined" || item === "null") return fallback;
@@ -42,12 +42,11 @@ const safeGet = <T>(key: string, fallback: T): T => {
     try { localStorage.removeItem(key); } catch(err) {}
     return fallback;
   }
-};
+}
 
 export const authService = {
   getUsers: (): Record<string, { user: User, pass: string }> => {
     const users = safeGet(USERS_KEY, INITIAL_USERS);
-    // Si l'objet est vide ou mal formé, on remet les utilisateurs par défaut
     if (!users || Object.keys(users).length === 0) {
         try { localStorage.setItem(USERS_KEY, JSON.stringify(INITIAL_USERS)); } catch(e) {}
         return INITIAL_USERS;

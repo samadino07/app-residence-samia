@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, Component, ReactNode } from 'react';
 import { ViewType, User, HotelSite, AppNotification, InternalMessage, UserRole } from './types';
 import DashboardView from './components/DashboardView';
