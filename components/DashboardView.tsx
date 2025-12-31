@@ -18,6 +18,17 @@ interface DashboardViewProps {
   isBoss: boolean;
 }
 
+// Fonction utilitaire pour éviter les crashs JSON
+const safeJSONParse = (key: string, fallback: any) => {
+  try {
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : fallback;
+  } catch (e) {
+    console.warn(`Erreur de lecture pour ${key}`, e);
+    return fallback;
+  }
+};
+
 const DashboardView: React.FC<DashboardViewProps> = ({ site, isBoss }) => {
   const [data, setData] = useState({
     stock: [] as StockItem[],
@@ -34,15 +45,15 @@ const DashboardView: React.FC<DashboardViewProps> = ({ site, isBoss }) => {
   useEffect(() => {
     const fetchData = () => {
       setData({
-        stock: JSON.parse(localStorage.getItem(`samia_stock_items_${site}`) || '[]'),
-        commands: JSON.parse(localStorage.getItem(`samia_stock_commands_${site}`) || '[]'),
-        laundry: JSON.parse(localStorage.getItem(`samia_blanchisserie_${site}`) || '[]'),
-        staff: JSON.parse(localStorage.getItem(`samia_staff_${site}`) || '[]'),
-        vouchers: JSON.parse(localStorage.getItem(`samia_vouchers_${site}`) || '[]'),
-        planning: JSON.parse(localStorage.getItem(`samia_planning_${site}`) || '[]'),
-        dishes: JSON.parse(localStorage.getItem(`samia_dishes_${site}`) || '[]'),
-        cash: JSON.parse(localStorage.getItem(`samia_cash_${site}`) || '[]'),
-        apartments: JSON.parse(localStorage.getItem(`samia_apartments_${site}`) || '[]')
+        stock: safeJSONParse(`samia_stock_items_${site}`, []),
+        commands: safeJSONParse(`samia_stock_commands_${site}`, []),
+        laundry: safeJSONParse(`samia_blanchisserie_${site}`, []),
+        staff: safeJSONParse(`samia_staff_${site}`, []),
+        vouchers: safeJSONParse(`samia_vouchers_${site}`, []),
+        planning: safeJSONParse(`samia_planning_${site}`, []),
+        dishes: safeJSONParse(`samia_dishes_${site}`, []),
+        cash: safeJSONParse(`samia_cash_${site}`, []),
+        apartments: safeJSONParse(`samia_apartments_${site}`, [])
       });
     };
     fetchData();
@@ -52,41 +63,47 @@ const DashboardView: React.FC<DashboardViewProps> = ({ site, isBoss }) => {
 
   const today = new Date().toLocaleDateString('fr-FR');
   
-  // Stats Calculators
+  // Stats Calculators (avec protection contre undefined)
   const totalClients = useMemo(() => 
-    data.apartments.reduce((acc, apt) => acc + (apt.currentOccupantsCount || 0), 0)
+    (data.apartments || []).reduce((acc, apt) => acc + (Number(apt?.currentOccupantsCount) || 0), 0)
   , [data.apartments]);
 
-  const staffPresent = data.staff.filter(s => s.attendance.find(a => a.date === today && a.status === 'Présent')).length;
-  const staffAbsent = data.staff.filter(s => s.attendance.find(a => a.date === today && a.status === 'Absent')).length;
+  const staffPresent = (data.staff || []).filter(s => s?.attendance?.find(a => a.date === today && a.status === 'Présent')).length;
+  const staffAbsent = (data.staff || []).filter(s => s?.attendance?.find(a => a.date === today && a.status === 'Absent')).length;
   
-  const dailyVouchers = data.vouchers.filter(v => v.date === today);
+  const dailyVouchers = (data.vouchers || []).filter(v => v.date === today);
   const mealsCount = dailyVouchers.filter(v => v.type === 'Repas').length;
   const drinksCount = dailyVouchers.filter(v => v.type === 'Boisson').length;
 
   const laundryStats = {
-    pending: data.laundry.filter(r => r.status === 'En attente' || r.status === 'En blanchisserie').length,
-    inReception: data.laundry.filter(r => r.status === 'En réception').length
+    pending: (data.laundry || []).filter(r => r.status === 'En attente' || r.status === 'En blanchisserie').length,
+    inReception: (data.laundry || []).filter(r => r.status === 'En réception').length
   };
 
-  const criticalStock = data.stock.filter(s => s.quantity <= s.minThreshold);
-  const activeCommands = data.commands.filter(c => c.status === 'En attente');
+  const criticalStock = (data.stock || []).filter(s => s.quantity <= s.minThreshold);
+  const activeCommands = (data.commands || []).filter(c => c.status === 'En attente');
 
   const todayMenu = useMemo(() => {
     const days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
     const currentDay = days[new Date().getDay()];
-    return data.planning.filter(p => p.day === currentDay).map(p => {
-      const dish = data.dishes.find(d => d.id === p.mainDishId);
-      return { cat: p.category, name: dish ? dish.name : 'Non planifié' };
-    });
+    return (data.planning || [])
+      .filter(p => p.day === currentDay)
+      .map(p => {
+        const dish = (data.dishes || []).find(d => d.id === p.mainDishId);
+        return { cat: p.category, name: dish ? dish.name : 'Non planifié' };
+      });
   }, [data.planning, data.dishes]);
 
   // Financial Health: (Clients * 150) - Expenses
   const healthData = useMemo(() => {
     const clientBudget = totalClients * 150;
-    const todayExpenses = data.cash
-      .filter(t => new Date(t.timestamp).toLocaleDateString('fr-FR') === today && t.type === 'Sortie')
-      .reduce((acc, t) => acc + t.amount, 0);
+    const todayExpenses = (data.cash || [])
+      .filter(t => {
+        try {
+          return new Date(t.timestamp).toLocaleDateString('fr-FR') === today && t.type === 'Sortie';
+        } catch { return false; }
+      })
+      .reduce((acc, t) => acc + (Number(t.amount) || 0), 0);
     
     const score = clientBudget - todayExpenses;
     
@@ -178,7 +195,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ site, isBoss }) => {
             <i className="fas fa-user-check text-[10px]"></i>
           </div>
           <div className="flex items-end justify-between">
-            <h4 className="text-xl font-black text-white">{staffPresent}<span className="text-[10px] text-slate-600 ml-1">/ {data.staff.length}</span></h4>
+            <h4 className="text-xl font-black text-white">{staffPresent}<span className="text-[10px] text-slate-600 ml-1">/ {(data.staff || []).length}</span></h4>
             <span className="text-[7px] font-black text-emerald-500 uppercase">{staffAbsent} Abs</span>
           </div>
           {renderSparkline('#10b981')}
